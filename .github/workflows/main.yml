@@ -32,7 +32,11 @@ jobs:
       - name: Detect changed subdirectories
         id: detect-changes
         run: |
+          echo "=== Detecting changed subdirectories ==="
+          
           changed_files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- docs/)
+          echo "Changed files in docs/:"
+          echo "$changed_files"
           
           changed_subdirs=""
           for file in $changed_files; do
@@ -40,6 +44,7 @@ jobs:
             if [ -n "$subdir" ] && [ -f "docs/$subdir/llms.txt" ] && [ -f "docs/$subdir/llms-full.txt" ]; then
               if [[ ! "$changed_subdirs" =~ (^|[[:space:]])"$subdir"($|[[:space:]]) ]]; then
                 changed_subdirs="$changed_subdirs $subdir"
+                echo "Found subdirectory with llms files: $subdir"
               fi
             fi
           done
@@ -47,9 +52,9 @@ jobs:
           changed_subdirs=$(echo "$changed_subdirs" | xargs)
           
           echo "changed_subdirs=$changed_subdirs" >> $GITHUB_OUTPUT
-          echo "Found changed subdirectories: $changed_subdirs"
+          echo "=== Final changed subdirectories: $changed_subdirs ==="
 
-      - name: Generate llms.txt updates with forced completion
+      - name: Generate llms.txt updates (restricted)
         if: steps.detect-changes.outputs.changed_subdirs != ''
         env:
           MODEL: gpt-5
@@ -57,95 +62,116 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CHANGED_SUBDIRS: ${{ steps.detect-changes.outputs.changed_subdirs }}
         run: |
-          # Create a script that will force completion
-          cat > force_complete.sh << 'EOF'
-          #!/bin/bash
-          set -euo pipefail
+          echo "=== Starting restricted file modification process ==="
+          echo "Processing subdirectories: $CHANGED_SUBDIRS"
           
-          echo "=== Starting forced completion approach ==="
-          
-          # Run cursor-agent in background
-          cursor-agent -p "You are updating documentation summary files. 
+          cursor-agent -p "You are updating documentation summary files in a GitHub Actions runner.
 
-          TASK: Check if docs/$CHANGED_SUBDIRS/llms.txt and docs/$CHANGED_SUBDIRS/llms-full.txt need updates based on PR ${{ github.event.pull_request.number }}.
+          IMPORTANT: Do NOT create branches, commit, push, or post PR comments. Only modify files in the working directory as needed. A later workflow step is responsible for publishing changes and commenting on the PR.
 
-          PROCESS:
-          1. Get diff: gh pr diff ${{ github.event.pull_request.number }}
-          2. Read docs/$CHANGED_SUBDIRS/llms.txt 
-          3. Read docs/$CHANGED_SUBDIRS/llms-full.txt
-          4. If changes warrant updates: modify the files
-          5. If no updates needed: do nothing
-          6. Print 'ANALYSIS_COMPLETE' and stop
+          # Context:
+          - Repo: ${{ github.repository }}
+          - PR Number: ${{ github.event.pull_request.number }}
+          - Base Ref: ${{ github.base_ref }}
+          - Head Ref: ${{ github.head_ref }}
+          - Changed Subdirectories: $CHANGED_SUBDIRS
 
-          CRITICAL: You have 5 minutes to complete this. Print 'ANALYSIS_COMPLETE' when done and exit immediately. Do not commit or push." \
-          --force --model "$MODEL" --output-format=text &
-          
-          AGENT_PID=$!
-          echo "Started cursor-agent with PID: $AGENT_PID"
-          
-          # Force kill after 5 minutes
-          (sleep 300; echo "=== Forcing completion after 5 minutes ==="; kill -9 $AGENT_PID 2>/dev/null) &
-          KILLER_PID=$!
-          
-          # Wait for completion
-          if wait $AGENT_PID 2>/dev/null; then
-            echo "=== Agent completed normally ==="
-            kill $KILLER_PID 2>/dev/null || true
-          else
-            echo "=== Agent was terminated ==="
-          fi
-          
-          echo "=== Process finished ==="
-          EOF
-          
-          chmod +x force_complete.sh
-          ./force_complete.sh
+          # Your Task:
+          Update llms.txt and llms-full.txt files in the changed subdirectories based on documentation changes in this PR.
 
-      - name: Commit changes directly to PR branch
+          # Step-by-Step Process (print each step as you do it):
+          1. Print 'STEP 1: Getting PR diff'
+          2. Get PR changes: \`gh pr diff ${{ github.event.pull_request.number }}\`
+          3. Print 'STEP 2: Processing subdirectories: $CHANGED_SUBDIRS'
+          4. For each subdirectory in CHANGED_SUBDIRS:
+             a. Print 'STEP 3a: Reading docs/[subdirectory]/llms.txt'
+             b. Print 'STEP 3b: Reading docs/[subdirectory]/llms-full.txt'
+             c. Print 'STEP 3c: Analyzing if updates are needed for [subdirectory]'
+             d. If updates needed: Print 'STEP 3d: Updating files for [subdirectory]' and modify the files
+             e. If no updates needed: Print 'STEP 3e: No updates needed for [subdirectory]'
+          5. Print 'STEP 4: File modifications complete'
+          6. Print 'TASK_FINISHED' and exit
+
+          # File Requirements:
+          - Only modify docs/[subdirectory]/llms.txt and docs/[subdirectory]/llms-full.txt files
+          - Do NOT modify root-level llms.txt or llms-full.txt files
+          - llms.txt should be a concise summary/index of the documentation in that subdirectory
+          - llms-full.txt should be a comprehensive guide with code examples and detailed explanations
+          - Maintain existing format and style
+          - Only update files that actually need changes based on PR content
+
+          # Critical Restrictions:
+          - NO git operations (no commit, push, branch creation)
+          - NO PR comments or API calls except gh pr diff
+          - Only file modifications in working directory
+          - Must print progress steps as you go
+          - Must end with 'TASK_FINISHED'
+
+          Begin now and print each step clearly.
+          " --force --model "$MODEL" --output-format=text
+
+          echo "=== Cursor agent file modification completed ==="
+
+      - name: Commit changes to PR branch (deterministic)
         if: steps.detect-changes.outputs.changed_subdirs != ''
         id: commit_changes
         run: |
-          echo "changes_committed=false" >> "$GITHUB_OUTPUT"
+          echo "=== Checking for file changes to commit ==="
           
+          # Stage all changes
           git add -A
           
+          # Check if there are any changes to commit
           if git diff --staged --quiet; then
             echo "No llms.txt changes to commit."
+            echo "changes_committed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           
-          echo "Changes detected:"
+          echo "Changes detected in the following files:"
           git diff --staged --name-only
           
-          COMMIT_MSG="docs: update llms summaries for PR #${{ github.event.pull_request.number }}"
+          echo "=== Committing changes to PR branch ==="
+          COMMIT_MSG="docs: update llms summaries for subdirectories (${{ steps.detect-changes.outputs.changed_subdirs }})"
           git commit -m "$COMMIT_MSG"
           git push origin ${{ github.head_ref }}
           
           echo "changes_committed=true" >> "$GITHUB_OUTPUT"
+          echo "=== Changes committed and pushed successfully ==="
 
-      - name: Comment on PR about updates
+      - name: Post PR comment (deterministic)
         if: steps.commit_changes.outputs.changes_committed == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
+          echo "=== Posting PR comment about updates ==="
+          
+          # Get list of changed llms files
           changed_llms_files=$(git diff HEAD~1 --name-only | grep -E "llms(-full)?\.txt$" | head -10)
           
           COMMENT_FILE="${RUNNER_TEMP}/llms-update-comment.md"
           {
-            echo "🤖 **LLMs summaries updated**"
+            echo "🤖 **LLM summary files updated**"
             echo ""
-            echo "Updated documentation summary files:"
+            echo "Updated the following documentation summary files based on changes in subdirectories: \`${{ steps.detect-changes.outputs.changed_subdirs }}\`"
+            echo ""
+            echo "**Files updated:**"
             for file in $changed_llms_files; do
               echo "- \`$file\`"
             done
             echo ""
+            echo "_This comment will be updated if you make more changes to the PR._"
+            echo ""
             echo "<!-- auto-update-llms -->"
           } > "$COMMENT_FILE"
           
+          # Try to update existing comment, fall back to new comment
           if gh pr comment "$PR_NUMBER" --body-file "$COMMENT_FILE" --edit-last; then
             echo "Updated existing PR comment."
           else
             gh pr comment "$PR_NUMBER" --body-file "$COMMENT_FILE"
             echo "Posted new PR comment."
           fi
+          
+          echo "=== PR comment posted successfully ==="
