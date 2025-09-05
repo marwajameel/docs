@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.head_ref }}  # Checkout the PR branch directly
+          ref: ${{ github.head_ref }}
 
       - name: Install Cursor CLI
         run: |
@@ -32,23 +32,18 @@ jobs:
       - name: Detect changed subdirectories
         id: detect-changes
         run: |
-          # Get list of changed files in docs/ directory
           changed_files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- docs/)
           
-          # Extract unique subdirectories that have llms.txt files
           changed_subdirs=""
           for file in $changed_files; do
-            # Extract subdirectory (e.g., docs/base-account/file.mdx -> base-account)
             subdir=$(echo "$file" | sed -n 's|^docs/\([^/]*\)/.*|\1|p')
             if [ -n "$subdir" ] && [ -f "docs/$subdir/llms.txt" ] && [ -f "docs/$subdir/llms-full.txt" ]; then
-              # Add to list if not already present
               if [[ ! "$changed_subdirs" =~ (^|[[:space:]])"$subdir"($|[[:space:]]) ]]; then
                 changed_subdirs="$changed_subdirs $subdir"
               fi
             fi
           done
           
-          # Clean up whitespace
           changed_subdirs=$(echo "$changed_subdirs" | xargs)
           
           echo "changed_subdirs=$changed_subdirs" >> $GITHUB_OUTPUT
@@ -62,56 +57,64 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CHANGED_SUBDIRS: ${{ steps.detect-changes.outputs.changed_subdirs }}
         run: |
-          cursor-agent -p "You are operating in a GitHub Actions runner to update documentation summary files.
+          # Set timeout and error handling
+          set -euo pipefail
+          
+          # Run cursor-agent with 30-minute timeout (1800 seconds)
+          timeout 1800 cursor-agent -p "You are operating in a GitHub Actions runner to update documentation summary files.
 
-          The GitHub CLI is available as \`gh\` and authenticated via \`GH_TOKEN\`. Git is available. You have write access to repository contents and can comment on pull requests.
+          The GitHub CLI is available as \`gh\` and authenticated via \`GH_TOKEN\`. Git is available.
 
           # Context:
           - Repo: ${{ github.repository }}
-          - Owner: ${{ github.repository_owner }}
           - PR Number: ${{ github.event.pull_request.number }}
           - Base Ref: ${{ github.base_ref }}
           - Head Ref: ${{ github.head_ref }}
           - Changed Subdirectories: $CHANGED_SUBDIRS
-          - Current Branch: ${{ github.head_ref }} (you are already on the PR branch)
+          - Current Branch: ${{ github.head_ref }}
 
           # Goal:
-          Update the llms.txt and llms-full.txt files in the changed subdirectories and commit directly to the current PR branch.
+          Update llms.txt and llms-full.txt files in changed subdirectories and commit directly to the PR branch.
 
-          # Requirements:
-          1) For each subdirectory in CHANGED_SUBDIRS, analyze what changed in that subdirectory since the base branch.
-          2) Update ONLY the llms.txt and llms-full.txt files in those specific subdirectories (e.g., docs/base-account/llms.txt, docs/base-account/llms-full.txt).
-          3) DO NOT update the root-level llms.txt or llms-full.txt files.
-          4) The llms.txt should be a concise summary/index of the documentation in that subdirectory.
-          5) The llms-full.txt should be a comprehensive guide with code examples and detailed explanations.
-          6) Maintain the existing format and style of these files.
-          7) ONLY commit and push changes if there are actual updates needed to the llms files.
-          8) If no updates are needed, do NOT create any commits or comments.
-          9) Commit directly to the current PR branch (${{ github.head_ref }}) - do NOT create separate branches.
-          10) If you make changes, add a simple comment to the PR explaining what was updated.
+          # Critical Instructions:
+          1) Check what changed in the PR using \`gh pr diff ${{ github.event.pull_request.number }}\`
+          2) For each subdirectory in CHANGED_SUBDIRS, read the current llms.txt and llms-full.txt files
+          3) Determine if the changes warrant updates to these summary files
+          4) If updates are needed:
+             - Update the files
+             - Commit with message: 'docs: update llms summaries for [subdirectory]'
+             - Push to current branch
+             - Add a brief PR comment explaining the updates
+          5) If NO updates are needed:
+             - Print 'NO_UPDATES_NEEDED' and exit immediately
+             - Do not create commits, branches, or comments
 
-          # File Structure Context:
-          Each subdirectory (base-account, base-app, base-chain, cookbook, get-started, learn, mini-apps, onchainkit) contains:
-          - Multiple .mdx documentation files
-          - An llms.txt file (concise summary/index)
-          - An llms-full.txt file (comprehensive guide with code examples)
+          # IMPORTANT EXIT BEHAVIOR:
+          - Always end your response with either 'UPDATES_COMPLETED' or 'NO_UPDATES_NEEDED'
+          - Do not hang or wait for additional input
+          - Exit cleanly after determining the outcome
 
-          # Instructions:
-          1) Use \`gh pr diff ${{ github.event.pull_request.number }}\` to see what changed in the PR for the specific subdirectories.
-          2) Read the current llms.txt and llms-full.txt files in each changed subdirectory.
-          3) Scan the .mdx files in each changed subdirectory to understand the content.
-          4) Update the llms.txt and llms-full.txt files ONLY if the changes warrant updates to the summaries.
-          5) If you make updates, commit them with a clear message like 'docs: update llms summaries for [subdirectory]'.
-          6) Push the commit to the current branch.
-          7) Add a brief comment to the PR explaining what was updated.
-          8) If no updates are needed, do nothing - no commits, no comments, no branches.
+          # File Requirements:
+          - Only update llms.txt and llms-full.txt in the specified subdirectories
+          - Do NOT update root-level llms files
+          - Maintain existing format and style
+          - llms.txt = concise summary/index
+          - llms-full.txt = comprehensive guide with code examples
 
-          # Important: Avoid Getting Stuck
-          - If there are no changes to make, simply exit without doing anything.
-          - Do not create empty commits or branches.
-          - Do not post comments if no changes were made.
+          Remember: Always conclude with 'UPDATES_COMPLETED' or 'NO_UPDATES_NEEDED' and exit.
+          " --force --model "$MODEL" --output-format=text || {
+            echo "Cursor agent completed or timed out after 30 minutes"
+            exit 0
+          }
+          
+          echo "Documentation update process completed"
 
-          # Workflow:
-          1. Check what changed → 2. Determine if llms files need updates → 3. If yes: update, commit, push, comment → 4. If no: do nothing and exit
-
-          " --force --model "$MODEL" --output-format=text
+      - name: Check for any uncommitted changes
+        if: steps.detect-changes.outputs.changed_subdirs != ''
+        run: |
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "No changes were made to commit"
+          else
+            echo "Changes detected but not committed - this might indicate an issue"
+            git status
+          fi
