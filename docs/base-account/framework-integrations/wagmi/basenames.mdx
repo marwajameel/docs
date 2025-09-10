@@ -1,0 +1,55 @@
+---
+title: "Basenames"
+description: "Add support for Base names in your application using Wagmi and Viem"
+---
+
+
+
+## Overview
+
+Basenames are human-readable names for addresses on Base.
+They are built on top of ENS names and follow [ENSIP-19](https://docs.ens.domains/ensip/19/).
+To learn more about Basenames, check out the [Basenames FAQ](/base-account/basenames/basenames-faq).
+
+This guide will show you how to add support for Basenames to your application using Wagmi and Viem.
+
+## Wagmi
+
+Before starting, make sure you have [set up Wagmi](/base-account/framework-integrations/wagmi/setup).
+
+Use `useEnsName` to fetch the primary ENS name for an address on Base:
+
+```tsx
+import { useEnsName } from 'wagmi'
+import { base } from 'wagmi/chains'
+
+function App() {
+  const result = useEnsName({
+    address: '0xd2135CfB216b74109775236E36d4b433F1DF507B',
+    chainId: base.id,
+  })
+}
+```
+
+[Learn more about useEnsName →](https://wagmi.sh/react/api/hooks/useEnsName)
+
+## Viem
+
+Use `getEnsName` to retrieve the primary ENS name for an address on Base:
+
+```ts
+import { createPublicClient, http, toCoinType } from 'viem'
+import { base } from 'viem/chains'
+
+const client = createPublicClient({
+  chain: base,
+  transport: http(),
+})
+
+const name = await client.getEnsName({
+  address: '0x179A862703a4adfb29896552DF9e307980D19285',
+  coinType: toCoinType(base.id),
+})
+```
+
+[Learn more about getEnsName →](https://viem.sh/docs/ens/actions/getEnsName)
