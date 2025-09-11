@@ -3,6 +3,8 @@ name: Update llms.txt and llms-full.txt in subdirectories
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: write
@@ -161,6 +163,15 @@ jobs:
               echo "- \`$file\`"
             done
             echo ""
+            echo "---"
+            echo "💬 **Need changes to the LLM summaries?**"
+            echo "Reply to this comment with your feedback and I'll update the files accordingly!"
+            echo ""
+            echo "**Example feedback:**"
+            echo "- \"The summary is missing information about X feature\""
+            echo "- \"Please add more code examples for Y\""
+            echo "- \"The llms-full.txt should include Z section\""
+            echo ""
             echo "_This comment will be updated if you make more changes to the PR._"
             echo ""
             echo "<!-- auto-update-llms -->"
@@ -175,3 +186,171 @@ jobs:
           fi
           
           echo "=== PR comment posted successfully ==="
+
+  feedback-handler:
+    if: github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, '🤖 **LLM summary files updated**')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if comment is a reply to bot comment
+        id: check-reply
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+          COMMENT_ID: ${{ github.event.comment.id }}
+        run: |
+          echo "=== Checking if this is feedback on LLM updates ==="
+          
+          # Get all comments on the PR
+          comments=$(gh api repos/${{ github.repository }}/issues/$PR_NUMBER/comments --jq '.[].body')
+          
+          # Check if there's a bot comment with the auto-update-llms marker
+          if echo "$comments" | grep -q "<!-- auto-update-llms -->"; then
+            echo "Found bot comment with LLM updates"
+            
+            # Get the current comment
+            current_comment=$(gh api repos/${{ github.repository }}/issues/comments/$COMMENT_ID --jq '.body')
+            
+            # Check if the current comment is NOT the bot comment itself
+            if ! echo "$current_comment" | grep -q "<!-- auto-update-llms -->"; then
+              echo "This is user feedback, not the bot comment itself"
+              echo "is_feedback=true" >> $GITHUB_OUTPUT
+              echo "feedback_text=$current_comment" >> $GITHUB_OUTPUT
+            else
+              echo "This is the bot comment itself, not user feedback"
+              echo "is_feedback=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "No bot comment found with LLM updates"
+            echo "is_feedback=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout repository for feedback processing
+        if: steps.check-reply.outputs.is_feedback == 'true'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Cursor CLI for feedback
+        if: steps.check-reply.outputs.is_feedback == 'true'
+        run: |
+          curl https://cursor.com/install -fsS | bash
+          echo "$HOME/.cursor/bin" >> $GITHUB_PATH
+
+      - name: Configure git for feedback
+        if: steps.check-reply.outputs.is_feedback == 'true'
+        run: |
+          git config user.name "Cursor Agent"
+          git config user.email "cursoragent@cursor.com"
+
+      - name: Process feedback and update files
+        if: steps.check-reply.outputs.is_feedback == 'true'
+        env:
+          MODEL: gpt-5
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FEEDBACK_TEXT: ${{ steps.check-reply.outputs.feedback_text }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          echo "=== Processing user feedback for LLM files ==="
+          echo "Feedback received: $FEEDBACK_TEXT"
+          
+          cursor-agent -p "You are processing user feedback about LLM summary files in a GitHub Actions runner.
+
+          IMPORTANT: Do NOT create branches, commit, push, or post PR comments. Only modify files in the working directory as needed. A later workflow step is responsible for publishing changes.
+
+          # Context:
+          - Repo: ${{ github.repository }}
+          - PR Number: $PR_NUMBER
+          - User Feedback: $FEEDBACK_TEXT
+
+          # Your Task:
+          Based on the user feedback, update the appropriate llms.txt and llms-full.txt files in the docs subdirectories.
+
+          # Step-by-Step Process (print each step as you do it):
+          1. Print 'STEP 1: Analyzing user feedback'
+          2. Print 'STEP 2: Getting current PR diff to understand context'
+          3. Get PR changes: \`gh pr diff $PR_NUMBER\`
+          4. Print 'STEP 3: Identifying which subdirectories need updates based on feedback'
+          5. For each relevant subdirectory:
+             a. Print 'STEP 4a: Reading current docs/[subdirectory]/llms.txt'
+             b. Print 'STEP 4b: Reading current docs/[subdirectory]/llms-full.txt'
+             c. Print 'STEP 4c: Applying user feedback to [subdirectory] files'
+             d. Update the files based on the specific feedback provided
+          6. Print 'STEP 5: Feedback processing complete'
+          7. Print 'FEEDBACK_PROCESSED' and exit
+
+          # File Requirements:
+          - Only modify docs/[subdirectory]/llms.txt and docs/[subdirectory]/llms-full.txt files
+          - Apply the specific changes requested in the user feedback
+          - Maintain existing format and style while incorporating feedback
+          - Focus on the areas specifically mentioned in the feedback
+
+          # Critical Restrictions:
+          - NO git operations (no commit, push, branch creation)
+          - NO PR comments or API calls except gh pr diff
+          - Only file modifications in working directory
+          - Must print progress steps as you go
+          - Must end with 'FEEDBACK_PROCESSED'
+
+          Begin now and print each step clearly.
+          " --force --model "$MODEL" --output-format=text
+
+          echo "=== Feedback processing completed ==="
+
+      - name: Commit feedback changes
+        if: steps.check-reply.outputs.is_feedback == 'true'
+        id: commit_feedback
+        run: |
+          echo "=== Checking for feedback-based changes to commit ==="
+          
+          # Stage all changes
+          git add -A
+          
+          # Check if there are any changes to commit
+          if git diff --staged --quiet; then
+            echo "No changes to commit based on feedback."
+            echo "changes_committed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          
+          echo "Changes detected based on feedback:"
+          git diff --staged --name-only
+          
+          echo "=== Committing feedback changes to PR branch ==="
+          COMMIT_MSG="docs: update llms summaries based on user feedback"
+          git commit -m "$COMMIT_MSG"
+          git push origin ${{ github.head_ref }}
+          
+          echo "changes_committed=true" >> "$GITHUB_OUTPUT"
+          echo "=== Feedback changes committed and pushed successfully ==="
+
+      - name: Reply to feedback comment
+        if: steps.commit_feedback.outputs.changes_committed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+          COMMENT_ID: ${{ github.event.comment.id }}
+        run: |
+          echo "=== Replying to feedback comment ==="
+          
+          # Get list of changed llms files
+          changed_llms_files=$(git diff HEAD~1 --name-only | grep -E "llms(-full)?\.txt$" | head -10)
+          
+          REPLY_FILE="${RUNNER_TEMP}/feedback-reply.md"
+          {
+            echo "✅ **Feedback processed!**"
+            echo ""
+            echo "I've updated the LLM summary files based on your feedback."
+            echo ""
+            echo "**Files updated:**"
+            for file in $changed_llms_files; do
+              echo "- \`$file\`"
+            done
+            echo ""
+            echo "The changes have been committed to this PR. Please review and let me know if you need any further adjustments!"
+          } > "$REPLY_FILE"
+          
+          gh pr comment "$PR_NUMBER" --body-file "$REPLY_FILE"
+          echo "=== Feedback reply posted successfully ==="
