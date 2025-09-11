@@ -26,8 +26,7 @@ const { status } = await getPaymentStatus({ id })
 - [What is Base Account?](https://docs.base.org/base-account/overview/what-is-base-account.md) — Overview
 
 ### Quickstart
-- [Web (Next.js)](https://docs.base.org/base-account/quickstart/web.md) — Web integration
-- [Web (React)](https://docs.base.org/base-account/quickstart/web-react.md) — React example
+- [Web (Next.js)](https://docs.base.org/base-account/quickstart/web-react.md) — Next.js integration
 - [React Native Integration](https://docs.base.org/base-account/quickstart/mobile-integration.md) — Mobile
 
 ### Guides
@@ -77,23 +76,20 @@ const { status } = await getPaymentStatus({ id })
 
 ## Quickstart (excerpts)
 
-Source: `https://docs.base.org/base-account/quickstart/web.md`
+Source: `https://docs.base.org/base-account/quickstart/web-react.md`
 
 Base Account lets you add a passkey‑secured ERC‑4337 smart account to your app, with sponsored gas, batch transactions, spend permissions, and sub‑accounts.
 
 Install and initialize:
 
 ```bash
-npm install @base-org/account
+npm install @base-org/account @base-org/account-ui
 ```
 
 ```ts
-import { createBaseAccount } from '@base-org/account'
+import { createBaseAccountSDK } from '@base-org/account'
 
-const account = await createBaseAccount({
-  owner: '0xYourEOA',
-  chain: 'base-sepolia'
-})
+const provider = createBaseAccountSDK().getProvider()
 ```
 
 Send a payment with Base Pay (testnet):
@@ -108,7 +104,7 @@ const { status } = await getPaymentStatus({ id })
 Batch two calls in one user operation:
 
 ```ts
-const result = await account.provider.request({
+const result = await provider.request({
   method: 'wallet_sendCalls',
   params: [{
     calls: [
