@@ -2,10 +2,9 @@
 title: Migrate Existing Apps
 description: Quickly migrate your existing app to a mini app, preview it in Base Build, and publish to the Base app.
 ---
-
-# Requirements 
+**Prerequisites** 
 * You have an existing web app 
-* you have a Base app account
+* You have a Base app account
 
 
 <Steps>
@@ -62,18 +61,16 @@ Copy the example manifest below and update each field in the `miniapp` object.
 
 Update your app to host the manifest file at `https://www.your-domain.com/.well-known/farcaster.json`.
 
-The manifest file is used to verify ownership of your app and contains metadata to power search, discovery, and rich embeds in the Base App.
+<Info>The manifest file is used to verify ownership of your app and contains metadata to power search, discovery, and rich embeds in the Base app.</Info>
 
 ### Example Manifest
+For details on each field, see the[Manifest Field Reference](/mini-apps/features/manifest#field-reference)
 ```json /.well-known/farcaster.json
 {
   "accountAssociation": {
     "header": "eyJmaWQiOjkxNTIsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHgwMmVmNzkwRGQ3OTkzQTM1ZkQ4NDdDMDUzRURkQUU5NDBEMDU1NTk2In0",
     "payload": "eyJkb21haW4iOiJhcHAuZXhhbXBsZS5jb20ifQ",
     "signature": "MHgxMGQwZGU4ZGYwZDUwZTdmMGIxN2YxMTU2NDI1MjRmZTY0MTUyZGU4ZGU1MWU0MThiYjU4ZjVmZmQxYjRjNDBiNGVlZTRhNDcwNmVmNjhlMzQ0ZGQ5MDBkYmQyMmNlMmVlZGY5ZGQ0N2JlNWRmNzMwYzUxNjE4OWVjZDJjY2Y0MDFj"
-  },
-  "baseBuilder": {
-    "allowedAddresses": ["0x..."]
   },
   "miniapp": {
     "version": "1",
@@ -103,7 +100,7 @@ The manifest file is used to verify ownership of your app and contains metadata 
 ```
 </Step>
 
-<Step title="Sign the Manifest ">
+<Step title="Create Account Association Credentials">
 The `accountAssociation` fields in the manifest are used to verify ownership of your app. You can generate these fields using the `create-onchain` CLI or via the farcaster dashboard.
 
 <Tabs>
