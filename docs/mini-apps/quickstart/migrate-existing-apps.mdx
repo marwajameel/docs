@@ -1,0 +1,209 @@
+---
+title: Migrate Existing Apps
+description: Quickly migrate your existing app to a mini app, preview it in Base Build, and publish your app.
+---
+
+# Requirements 
+* You have an existing web app 
+* you have a Base app account
+
+
+<Steps>
+<Step title="Add the MiniApp SDK">
+<CodeGroup>
+```bash npm
+npm install @farcaster/miniapp-sdk
+```
+
+```bash pnpm
+pnpm add @farcaster/miniapp-sdk
+```
+
+```bash yarn
+yarn add @farcaster/miniapp-sdk
+```
+</CodeGroup>
+</Step>
+
+<Step title="Trigger App Display">
+Once your app has loaded, call `sdk.actions.ready()` to hide the loading splash screen and display your app.
+<Tabs>
+    <Tab title="Vanilla JS">
+    ```javascript app.js
+    import { sdk } from '@farcaster/miniapp-sdk';
+    
+    // Once app is ready to be displayed
+    await sdk.actions.ready();
+    ```
+    </Tab>
+    <Tab title="React">
+    In React apps, call `ready()` inside a `useEffect` hook to prevent it from running on every re-render.  Call `ready()` as soon as possible and avoid jitter and content reflows. 
+    ```typescript app.tsx
+    import { sdk } from '@farcaster/miniapp-sdk';
+    import { useEffect } from 'react';
+    
+    function App() {
+        useEffect(() => {
+            sdk.actions.ready();
+        }, []);
+
+        return(...your app content goes here...)
+    }
+
+    export default App;
+    
+    ```
+    </Tab>
+</Tabs>
+</Step>
+
+<Step title="Add the Manifest">
+Copy the eaxmple manifest below and update each field in the `miniapp` object.
+
+Update your app to host the manifestfile at `https://www.your-domain.com/.well-known/farcaster.json`.
+
+The manifest file is used to verify ownership of your app and contains metadata to power search, discovery, and rich embeds in the Base App.
+
+### Example Manifest
+```json /.well-known/farcaster.json
+{
+  "accountAssociation": {
+    "header": "eyJmaWQiOjkxNTIsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHgwMmVmNzkwRGQ3OTkzQTM1ZkQ4NDdDMDUzRURkQUU5NDBEMDU1NTk2In0",
+    "payload": "eyJkb21haW4iOiJhcHAuZXhhbXBsZS5jb20ifQ",
+    "signature": "MHgxMGQwZGU4ZGYwZDUwZTdmMGIxN2YxMTU2NDI1MjRmZTY0MTUyZGU4ZGU1MWU0MThiYjU4ZjVmZmQxYjRjNDBiNGVlZTRhNDcwNmVmNjhlMzQ0ZGQ5MDBkYmQyMmNlMmVlZGY5ZGQ0N2JlNWRmNzMwYzUxNjE4OWVjZDJjY2Y0MDFj"
+  },
+  "baseBuilder": {
+    "allowedAddresses": ["0x..."]
+  },
+  "miniapp": {
+    "version": "1",
+    "name": "Example Mini App",
+    "homeUrl": "https://ex.co",
+    "iconUrl": "https://ex.co/i.png",
+    "splashImageUrl": "https://ex.co/l.png",
+    "splashBackgroundColor": "#000000",
+    "webhookUrl": "https://ex.co/api/webhook",
+    "subtitle": "Fast, fun, social",
+    "description": "A fast, fun way to challenge friends in real time.",
+    "screenshotUrls": [
+      "https://ex.co/s1.png",
+      "https://ex.co/s2.png",
+      "https://ex.co/s3.png"
+    ],
+    "primaryCategory": "social",
+    "tags": ["example", "miniapp", "baseapp"],
+    "heroImageUrl": "https://ex.co/og.png",
+    "tagline": "Play instantly",
+    "ogTitle": "Example Mini App",
+    "ogDescription": "Challenge friends in real time.",
+    "ogImageUrl": "https://ex.co/og.png",
+    "noindex": true
+  }
+}
+```
+</Step>
+
+<Step title="Sign the Manifest ">
+The `accountAssociation` fields in the manifest are used to verify ownership of your app. You can generate these fields using the `create-onchain` CLI or via the farcaster dashboard.
+
+<Tabs>
+    <Tab title="CLI">
+    Run the `create-onchain` CLI to generate the `accountAssociation` fields.
+    ```bash Terminal
+    npx create-onchain --manifest
+    ```
+    This adds the `Farcaster_HEADER`, `Farcaster_PAYLOAD`, and `Farcaster_SIGNATURE` fields to your `.env` file. 
+
+    Replace the `accountAssociation` fields in the manifest file with the values from your `.env` file.
+    
+    ```json /.well-known/farcaster.json
+    {
+      "accountAssociation": {
+        "header": "Farcaster_HEADER",
+        "payload": "Farcaster_PAYLOAD",
+        "signature": "Farcaster_SIGNATURE"
+      }
+    }
+    ```
+    </Tab>
+    <Tab title="Farcaster Dashboard">
+    1. Navigate to the [farcaster dashboard](https://farcaster.xyz/~/developers/hosted-manifests) and add all of the required fields. 
+    2. Click "Submit" to generate the `accountAssociation` fields.
+    3. Copy the `accountAssociation` fields and paste them into the manifest file you added in the previous step.
+    ```json /.well-known/farcaster.json
+    {
+      "accountAssociation": {
+        "header": "eyJmaWQiOjkxNTIsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHgwMmVmNzkwRGQ3OTkzQTM1ZkQ4NDdDMDUzRURkQUU5NDBEMDU1NTk2In0",
+        "payload": "eyJkb21haW4iOiJhcHAuZXhhbXBsZS5jb20ifQ",
+        "signature": "MHgxMGQwZGU4ZGYwZDUwZTdmMGIxN2YxMTU2NDI1MjRmZTY0MTUyZGU4ZGU1MWU0MThiYjU4ZjVmZmQxYjRjNDBiNGVlZTRhNDcwNmVmNjhlMzQ0ZGQ5MDBkYmQyMmNlMmVlZGY5ZGQ0N2JlNWRmNzMwYzUxNjE4OWVjZDJjY2Y0MDFj"
+      },
+      "miniapp": {...}
+    }
+    ```
+    </Tab>
+</Tabs>
+</Step>
+
+<Step title="Add Embed Metadata">
+  Update your index.html file to include the `fc:miniapp` metadata. This is used to generate the rich embeds when your app is shared and is required for your app to display.
+
+  <Tabs>
+  Add directly to your index.html file.
+    <Tab title="Vanilla JS">
+  ```html index.html
+    <meta name="fc:miniapp" content='{
+    "version":"next",
+    "imageUrl":"https://your-app.com/embed-image",
+    "button":{
+        "title":"Play Now",
+        "action":{
+        "type":"launch_miniapp",
+        "name":"Your App Name",
+        "url":"https://your-app.com"
+        }
+    }
+    }' />
+    ```
+    </Tab>
+    <Tab title="Next.js">
+    Use the `generateMetadata` function to add the `fc:miniapp` metadata.
+    ```typescript app/layout.tsx
+        export async function generateMetadata(): Promise<Metadata> {
+        return {
+            other: {
+            'fc:miniapp': JSON.stringify({
+                version: 'next',
+                imageUrl: 'https://your-app.com/embed-image',
+                button: {
+                    title: `Launch Your App Name`,
+                    action: {
+                        type: 'launch_miniapp',
+                        name: 'Your App Name',
+                        url: 'https://your-app.com',
+                        splashImageUrl: 'https://your-app.com/splash-image',
+                        splashBackgroundColor: '#000000',
+                    },
+                },
+            }),
+            },
+        };
+        }
+    ```
+    </Tab>
+</Tabs>
+</Step>
+<Step title="Push All Changes to Production">
+  Ensure all changes are live.
+</Step>
+
+<Step title="Verify your app">
+  Go to base.dev/preview to validate your app.
+  1. Add your app URL to view the embeds and click the launch button to verify the app launches as expected. 
+  2. Use the "Account association" tab to verify the association credentials were created correctly.
+  3. Use the "Metadata" to see the metadata added from the manifest and identify any missing fields.
+</Step>
+<Step title="Post to Publish">
+    To bulish your app, create a post in the Base app with your app's URL.
+</Step>
+</Steps>
+

@@ -427,6 +427,7 @@
           {
             "group": "Quickstart",
             "pages": [
+              "mini-apps/quickstart/migrate-existing-apps",
               {
                 "group": "New Apps",
                 "pages": [
@@ -2701,7 +2702,7 @@
       "source": "/mini-apps/design-ux/onchainkit",
       "destination": "/mini-apps/design-ux/components"
     },
-
+    {
       "source": "/mini-apps/quickstart/new-apps/features",
       "destination": "/mini-apps/features/overview"
     }
