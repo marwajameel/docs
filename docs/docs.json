@@ -421,10 +421,6 @@
         "tab": "Mini Apps",
         "groups": [
           {
-            "group": "Introduction",
-            "pages": ["mini-apps/overview"]
-          },
-          {
             "group": "Quickstart",
             "pages": [
               "mini-apps/quickstart/migrate-existing-apps",
@@ -434,18 +430,6 @@
                   "mini-apps/quickstart/new-apps/install",
                   "mini-apps/quickstart/new-apps/deploy",
                   "mini-apps/quickstart/new-apps/create-manifest"
-                ]
-              },
-              {
-                "group": "Existing Apps",
-                "pages": [
-                  "mini-apps/quickstart/existing-apps/install",
-                  "mini-apps/quickstart/existing-apps/add-minikit",
-                  "mini-apps/quickstart/existing-apps/configure-environment",
-                  "mini-apps/quickstart/existing-apps/manifest-cli",
-                  "mini-apps/quickstart/existing-apps/create-manifest",
-                  "mini-apps/quickstart/existing-apps/add-frame-metadata",
-                  "mini-apps/quickstart/existing-apps/test-and-deploy"
                 ]
               },
               "mini-apps/quickstart/launch-checklist"
@@ -479,6 +463,7 @@
           {
             "group": "Growth Playbook",
             "pages": [
+              "mini-apps/overview",
               "mini-apps/growth/optimize-onboarding",
               "mini-apps/growth/build-viral-mini-apps",
               "mini-apps/growth/data-driven-growth",
