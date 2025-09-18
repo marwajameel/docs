@@ -56,15 +56,38 @@ Once your app has loaded, call `sdk.actions.ready()` to hide the loading splash 
 </Tabs>
 </Step>
 
-<Step title="Add the Manifest">
-Copy the example manifest below and update each field in the `miniapp` object.
+<Step title="Host the Manifest">
+Create a file available at `https://www.your-domain.com/.well-known/farcaster.json`.
 
-Update your app to host the manifest file at `https://www.your-domain.com/.well-known/farcaster.json`.
+<Tabs>
+    <Tab title="Vanilla JS">
+    Create the manifest file in your project at `/public/.well-known/farcaster.json`.
+    </Tab>
+    <Tab title="Next.js">
+    Create a Next.js rouote to host your manifest file
+    ```typescript app/.well-known/farcaster.json/route.ts
+    function withValidProperties(properties: Record<string, undefined | string | string[]>) {
+    return Object.fromEntries(
+        Object.entries(properties).filter(([_, value]) => (Array.isArray(value) ? value.length > 0 : !!value))
+    );
+    }
 
-<Info>The manifest file is used to verify ownership of your app and contains metadata to power search, discovery, and rich embeds in the Base app.</Info>
+    export async function GET() {
+    const URL = process.env.NEXT_PUBLIC_URL as string;
+    return Response.json(paste_manifest_json_object_here); // see the next step for the manifest_json_object
+    }
+    ```
+    </Tab>
+</Tabs>
+
+</Step>
+
+<Step title="Update the Manifest">
+Copy the example manifest below and add it to the file created in the previous step. Update each field in the `miniapp` object.
+
+For details on each field, see the [field reference](/mini-apps/features/manifest#field-reference)
 
 ### Example Manifest
-For details on each field, see the[Manifest Field Reference](/mini-apps/features/manifest#field-reference)
 ```json /.well-known/farcaster.json
 {
   "accountAssociation": {
@@ -100,7 +123,7 @@ For details on each field, see the[Manifest Field Reference](/mini-apps/features
 ```
 </Step>
 
-<Step title="Create Account Association Credentials">
+<Step title="Create accountAssociation Credentials">
 The `accountAssociation` fields in the manifest are used to verify ownership of your app. You can generate these fields using the `create-onchain` CLI or via the farcaster dashboard.
 
 <Tabs>
@@ -134,7 +157,7 @@ The `accountAssociation` fields in the manifest are used to verify ownership of 
         "payload": "eyJkb21haW4iOiJhcHAuZXhhbXBsZS5jb20ifQ",
         "signature": "MHgxMGQwZGU4ZGYwZDUwZTdmMGIxN2YxMTU2NDI1MjRmZTY0MTUyZGU4ZGU1MWU0MThiYjU4ZjVmZmQxYjRjNDBiNGVlZTRhNDcwNmVmNjhlMzQ0ZGQ5MDBkYmQyMmNlMmVlZGY5ZGQ0N2JlNWRmNzMwYzUxNjE4OWVjZDJjY2Y0MDFj"
       },
-      "miniapp": {...}
+      "miniapp": {...} // these fields remain the same
     }
     ```
     </Tab>
@@ -145,8 +168,8 @@ The `accountAssociation` fields in the manifest are used to verify ownership of 
   Update your index.html file to include the `fc:miniapp` metadata. This is used to generate the rich embeds when your app is shared and is required for your app to display.
 
   <Tabs>
-  Add directly to your index.html file.
     <Tab title="Vanilla JS">
+    Add directly to your index.html file.
   ```html index.html
     <meta name="fc:miniapp" content='{
     "version":"next",
@@ -189,18 +212,18 @@ The `accountAssociation` fields in the manifest are used to verify ownership of 
     </Tab>
 </Tabs>
 </Step>
-<Step title="Push All Changes to Production">
+<Step title="Push to Production">
   Ensure all changes are live.
 </Step>
 
-<Step title="Verify your app">
+<Step title="Preview Your App">
   Go to base.dev/preview to validate your app.
   1. Add your app URL to view the embeds and click the launch button to verify the app launches as expected. 
   2. Use the "Account association" tab to verify the association credentials were created correctly.
   3. Use the "Metadata" to see the metadata added from the manifest and identify any missing fields.
 </Step>
 <Step title="Post to Publish">
-    To bulish your app, create a post in the Base app with your app's URL.
+    To publish your app, create a post in the Base app with your app's URL.
 </Step>
 </Steps>
 
