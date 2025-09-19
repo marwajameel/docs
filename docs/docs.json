@@ -427,26 +427,7 @@
           {
             "group": "Quickstart",
             "pages": [
-              {
-                "group": "New Apps",
-                "pages": [
-                  "mini-apps/quickstart/new-apps/install",
-                  "mini-apps/quickstart/new-apps/deploy",
-                  "mini-apps/quickstart/new-apps/create-manifest"
-                ]
-              },
-              {
-                "group": "Existing Apps",
-                "pages": [
-                  "mini-apps/quickstart/existing-apps/install",
-                  "mini-apps/quickstart/existing-apps/add-minikit",
-                  "mini-apps/quickstart/existing-apps/configure-environment",
-                  "mini-apps/quickstart/existing-apps/manifest-cli",
-                  "mini-apps/quickstart/existing-apps/create-manifest",
-                  "mini-apps/quickstart/existing-apps/add-frame-metadata",
-                  "mini-apps/quickstart/existing-apps/test-and-deploy"
-                ]
-              },
+              "mini-apps/quickstart/create-new-miniapp",
               "mini-apps/quickstart/launch-checklist"
             ]
           },
@@ -2701,7 +2682,7 @@
       "source": "/mini-apps/design-ux/onchainkit",
       "destination": "/mini-apps/design-ux/components"
     },
-
+    {
       "source": "/mini-apps/quickstart/new-apps/features",
       "destination": "/mini-apps/features/overview"
     }
