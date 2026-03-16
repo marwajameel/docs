@@ -1,42 +1,32 @@
-import React from 'react';
-import { BasePayButton } from '@base/base-pay-button'; // یقینی بنائیں کہ لائبریری انسٹال ہے
+<div class="sdn-pay-box" style="direction: rtl; text-align: center; border: 1px solid #0052FF; padding: 20px; border-radius: 15px; background: #f9f9f9; max-width: 400px; margin: 20px auto; font-family: 'Noto Nastaliq Urdu', serif;">
+    
+    <img src="https://marwajameel.github.io/sdn-news/logo.png" alt="SDN News" style="width: 100px; margin-bottom: 10px;">
+    
+    <h3 style="color: #0052FF; margin-top: 0;">SDN News سپورٹ</h3>
+    <p style="font-size: 14px; color: #333;">ہماری آزادانہ صحافت کی مدد کے لیے آپ $25 کی رقم بذریعہ Base نیٹ ورک بھیج سکتے ہیں۔</p>
 
-const SDNPaymentSection = () => {
-  
-  // ادائیگی کی معلومات
+    <div id="base-payment-button-container">
+        </div>
+
+    <div style="margin-top: 15px; font-size: 12px; color: #777;">
+        <p>رپورٹ: جمیل احمد کلیال</p>
+        <p>SDN News: باخبر، ہر لمحہ</p>
+    </div>
+</div>
+
+<script>
+  // پیمنٹ کی معلومات
   const paymentOptions = {
     amount: '25.00',
     to: '0x742d35Cc6634C0532925a3b844Bc9e7595f6E456',
     testnet: true // لائیو کرنے کے لیے اسے false کر دیں
   };
 
-  // ٹرانزیکشن کا نتیجہ ہینڈل کرنے کا فنکشن
-  const handleResult = (result) => {
+  // رزلٹ ہینڈل کرنے کا فنکشن
+  function handleResult(result) {
     if (result.status === 'success') {
-      alert('SDN News: ادائیگی کامیابی سے موصول ہو گئی ہے۔ آپ کا شکریہ!');
-      console.log('Transaction Hash:', result.transactionHash);
-    } else {
-      alert('ادائیگی مکمل نہیں ہو سکی۔ براہ کرم دوبارہ کوشش کریں۔');
+      alert('شکریہ جمیل احمد کلیال صاحب! ادائیگی کامیابی سے موصول ہو گئی۔');
     }
-  };
+  }
+</script>
 
-  return (
-    <div style={{ padding: '20px', textAlign: 'center', border: '1px solid #ddd', borderRadius: '10px' }}>
-      <h2 style={{ color: '#0052FF' }}>SDN News سپورٹ</h2>
-      <p>ہماری صحافت کی مدد کے لیے آپ ڈیجیٹل کرنسی کے ذریعے فنڈز بھیج سکتے ہیں۔</p>
-      
-      {/* بیس پے بٹن */}
-      <BasePayButton 
-        paymentOptions={paymentOptions}
-        colorScheme="light"
-        onPaymentResult={handleResult}
-      />
-      
-      <div style={{ marginTop: '15px', fontSize: '12px', color: '#666' }}>
-        محفوظ ادائیگی بذریعہ Base Network
-      </div>
-    </div>
-  );
-};
-
-export default SDNPaymentSection;
