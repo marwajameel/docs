@@ -1,0 +1,10 @@
+const handleResult = (result) => {
+  if (result.status === 'success') {
+    console.log('ادائیگی کامیاب رہی:', result.transactionHash);
+    alert('شکریہ! آپ کی ادائیگی کامیابی سے مکمل ہو گئی ہے۔');
+    // یہاں آپ اپنی ویب سائٹ پر کوئی پیغام دکھا سکتے ہیں
+  } else {
+    console.error('ادائیگی میں خرابی:', result.error);
+    alert('معذرت، ادائیگی مکمل نہیں ہو سکی۔ دوبارہ کوشش کریں۔');
+  }
+};
