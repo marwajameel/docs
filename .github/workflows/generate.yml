@@ -1,0 +1,37 @@
+name: Generate Payment Card PDF
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: Install System Dependencies for WeasyPrint
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential python3-dev python3-pip python3-setuptools python3-wheel python3-cffi libcairo2 pango1.0-tools libpango-1.0-0 libpangoft2-1.0-0 libgdk-pixbuf2.0-0 libffi-dev shared-mime-info
+
+    - name: Install Python packages
+      run: |
+        pip install -r requirements.txt
+
+    - name: Run script and generate PDF
+      run: |
+        python main.py
+
+    - name: Upload PDF Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: SDN-Payment-Card
+        path: SDN-Payment-Card-v1.pdf
